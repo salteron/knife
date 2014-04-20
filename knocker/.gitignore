@@ -1,0 +1,6 @@
+/building_area/*
+!/building_area/hot_files
+/.idea
+/.ruby-version
+/.ruby-gemset
+/logs

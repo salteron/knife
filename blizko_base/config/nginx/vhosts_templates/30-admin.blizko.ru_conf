@@ -1,0 +1,31 @@
+## Админка
+server {
+	listen		80;
+	server_name	admin.knife.railsc.ru;
+
+	access_log	/var/log/nginx/30-admin-access_log main;
+	error_log	/var/log/nginx/30-admin-error_log info;
+
+	root /home/blizko/current/public;
+	
+	include /etc/nginx/503.conf;
+	
+	
+	location ~ robots.txt {
+		root /home/blizko/static;
+	}
+	
+	# Вся статика
+	location ~* ^.+\.(jpg|jpeg|gif|png|ico|css|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|js|mov|csv)$ {
+                root /home/blizko/current/public;
+                expires      1d;
+        }	
+
+	location / {
+		include /etc/nginx/proxy_headers.conf;
+
+		proxy_pass  http://unicorn;
+	}
+
+
+}

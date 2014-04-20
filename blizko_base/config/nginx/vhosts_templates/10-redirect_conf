@@ -1,0 +1,8 @@
+#Переадресация
+server {
+	listen		80;
+	server_name	knife.railsc.ru; 
+
+	rewrite ^(.*) http://www.knife.railsc.ru$1 permanent;
+	access_log	/var/log/nginx/10-redirect_log main;
+}

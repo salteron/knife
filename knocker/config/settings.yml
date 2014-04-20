@@ -1,0 +1,13 @@
+docker:
+  host_ip: '192.168.3.1' # IP хоста в докеровской сети
+
+application:
+  repository: 'abak-press'
+  default_project: 'blizko'
+
+www:
+  domain: 'knf.railsc.ru'        # прописывается в контейнер только во время build!
+
+nginx:
+  vhosts_dir: '/etc/nginx/vhosts'
+  reload_cmd: 'sudo service nginx restart' # reload_cmd: '/sbin/rc-service nginx reload' # gentoo

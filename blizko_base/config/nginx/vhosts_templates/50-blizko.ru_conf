@@ -1,0 +1,169 @@
+## Основной сайт
+server {
+	listen		80;
+	server_name	*.knife.railsc.ru;
+	
+	access_log	/var/log/nginx/50-test-blizko.ru-access_log main;
+	error_log	/var/log/nginx/50-test-blizko.ru-error_log info;
+
+	root /home/blizko/current/public;
+
+	#Бан по User-Agent
+	include /etc/nginx/deny-by-ua.conf;
+	
+	# блокирование по http_referer
+        include /etc/nginx/block_referer.conf;
+
+	# Страница ремонтных работ
+	include /etc/nginx/503.conf;
+
+
+	# Обработка сообщений переадресуется если не POST (совместимость со старым сайтом)
+	location ~ ^/dashboard/messages$ {
+		if ($request_method != POST ) {
+			rewrite  ^/dashboard/messages$  http://$host/dashboard/dialogs permanent;
+		}
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass  http://unicorn;
+	}
+
+	# Обработка сообщений переадресуется (совместимость со старым сайтом)
+	location ~ ^/firms/[0-9]+/write$ {
+		rewrite  ^/firms/([0-9]+)/write$ http://$host/dashboard/messages/new?company_id=$1 permanent;
+	}
+
+	# Кеширование генерируемых css шаблонов компаний - http://jira.dev.apress.ru/browse/PC4-6565
+        location ~ ^/stylesheets/(\d+/\d+)/(\d+)_(d|n)\.css$ {
+                set $id_partition $1;
+                set $company_id $2;
+                set $is_default $3;
+		root /home/blizko/current/public;
+
+        # Если backend сгенерироваля для нас кэш-страницу, то мы ее отдаем
+                if (-f $document_root/cache/company_template_css/${id_partition}/${company_id}_${is_default}.css) {
+                        rewrite / /cache/company_template_css/${id_partition}/${company_id}_${is_default}.css break;
+                        add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+                        add_header Pragma "no-cache";
+                        charset utf-8;
+                }
+
+                include /etc/nginx/proxy_headers.conf;
+
+        # Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+                if (!-f $document_root/cache/company_template_css/${id_partition}/${company_id}_${is_default}.css) {
+                        proxy_pass  http://unicorn;
+                }
+        }
+
+	# Кеширование генерируемых css шаблонов компаний - http://jira.dev.apress.ru/browse/SERVER-871
+        location ~ ^/stylesheets/([0-9]+)-template\.css$ {
+                set $company_id $1;
+                root /home/blizko/current/public;
+
+                # Если backend сгенерировал для нас кэш-страницу, то мы ее отдаем
+                if (-f $document_root/cache/company_template_css/company_${company_id}.css) {
+                        rewrite / /cache/company_template_css/company_${company_id}.css break;
+                        charset utf-8;
+                }
+
+                include /etc/nginx/proxy_headers.conf;
+
+                # Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+                if (!-f $document_root/cache/company_template_css/company_${company_id}.css) {
+                        proxy_pass  http://unicorn;
+                }
+        }
+
+        # Кеширование генерируемых css схем компаний
+        location ~ ^\/stylesheets/(\d+)-scheme.css$ {
+                set $scheme_id $1;
+
+                # Если backend сгенерировал для нас кэш-страницу, то мы ее отдаем
+                if (-f $document_root/cache/company_template_css/scheme_${scheme_id}.css) {
+                        root /home/blizko/current/public;
+                        rewrite / /cache/company_template_css/scheme_${scheme_id}.css break;
+                        add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+                        add_header Pragma "no-cache";
+                        charset utf-8;
+                }
+
+                include /etc/nginx/proxy_headers.conf;
+
+                # Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+                if (!-f $document_root/cache/company_template_css/scheme_${scheme_id}.css) {
+                        proxy_pass  http://unicorn;
+                }
+        }
+
+	# Кеширование главных страниц по регионам и по связке (регион-ip)
+	location = / {
+		# берем регион из домена
+		if ($host ~* "^([^.]+)\.knife\.railsc\.ru$" ) {
+			set  $region  $1;
+		}
+		# для домеа www.test-blizko.ru берем регион 'ru'
+		if ($host ~* "^www\.knife\.railsc\.ru$" ) {
+			set  $ip_region  $country;
+			set  $region  'ru';
+		}
+
+		# Если backend сгенерироваля для нас кэш-страницу, то мы ее отдаем
+		if (-f $document_root/cache/root/index_${region}_$ip_region.html) {
+			root /home/blizko/current/public;	
+			rewrite / /cache/root/index_${region}_$ip_region.html break;
+			add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+			add_header Pragma "no-cache";
+			charset utf-8;
+		}
+
+		include /etc/nginx/proxy_headers.conf;
+
+		# Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+		if (!-f $document_root/cache/root/index_${region}_$ip_region.html) {
+			proxy_pass  http://unicorn;
+		}
+	}
+
+	location uralweb.xml {
+		root /home/blizko/current/public/system;
+	}
+
+	# Все запросы к /firms/.*/stats/add_hit.(js|gif) отправлем на backend
+	location ~ ^\/(firms\/.*\/)?stats\/add_hit\.(js|gif)$ {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# Все запросы к /vcard.php отправлем на backend
+	location ~ ^\/vcard\.php$ {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# запросы к robots.txt
+	location ~ robots.txt {
+		root /home/blizko/static;
+	}
+	
+	# Валидация yandex
+	location ~ /yandex_[0-9a-f]+\.(txt|html)$ {
+		root /home/blizko/current/public/yandex/validation;	
+	}
+
+	# Кэш страницы rails
+	location ~ .html {
+		root /home/blizko/current/public;
+	}
+
+	# Вся статика
+	location ~* ^.+\.(jpg|jpeg|gif|png|ico|css|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|js|mov|csv)$ {
+		root /home/blizko/current/public;
+		expires      1d;
+	}
+
+	# Отправлем все на backend
+	location / {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass  http://unicorn;
+	}
+}
