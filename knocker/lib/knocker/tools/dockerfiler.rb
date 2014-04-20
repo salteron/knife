@@ -13,6 +13,8 @@ module Knocker
     # идет на х*ст
     HOST_VHOST_TEMPLATE     = File.join(TEMPLATES_DIR, 'host_vhost_template')
 
+    RUN_SCRIPT              = File.join(TEMPLATES_DIR, 'run.sh')
+
     module_function
 
     # Generate dockerfile for an image from template
@@ -64,6 +66,13 @@ module Knocker
       }
 
       Substitutor.sub(template, target, substitution)
+    end
+
+    def self.generate_run_script(target_dir)
+      template = RUN_SCRIPT
+      target   = File.join(target_dir, 'run.sh')
+
+      Substitutor.sub(template, target, {}) # just copy as-is
     end
   end
 end

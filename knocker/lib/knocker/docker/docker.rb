@@ -75,6 +75,7 @@ module Knocker
       Dockerfiler.generate_dockerfile(image.parent_image.name,
                                       image.branch,
                                       build_dir)
+      Dockerfiler.generate_run_script(build_dir)
 
       build_dir
     end

@@ -4,7 +4,7 @@
 require 'slop'
 require_relative '../lib/knocker.rb'
 
-Slop.parse(strict: true, help: true) do
+Slop.parse(help: true) do
   on '-v', 'Print the version' do
     puts 'Version 1.0'
     exit
@@ -20,6 +20,8 @@ Slop.parse(strict: true, help: true) do
     # TODO: для каналов (knocker build ... | xargs knocker run)
     on :q, :quite, 'Quite mode'
 
+    on :r, :run, 'Run a container after an image is built'
+
     on :i=, :image=,  'Image name'
     on :b=, :branch=, 'Code branch'
 
@@ -29,8 +31,14 @@ Slop.parse(strict: true, help: true) do
         exit 1
       end
 
-      puts Knocker::Builder.new.build_from_image_and_branch(opts[:image],
-                                                            opts[:branch])
+      image_name = Knocker::Builder.new
+        .build_from_image_and_branch(opts[:image], opts[:branch])
+
+      puts image_name
+
+      if opts[:run]
+        Knocker::Runner.new.run_from_image(image_name)
+      end
     end
   end
 

@@ -5,6 +5,7 @@ require_relative '../docker/image'
 require_relative 'git'
 require_relative 'logger'
 require_relative 'informer'
+require_relative 'runner'
 
 module Knocker
   class Builder
