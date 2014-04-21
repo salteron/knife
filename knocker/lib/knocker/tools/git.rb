@@ -2,7 +2,7 @@
 
 module Knocker
   module Git
-    module_function
+    extend self
 
     def branch_exists?(project, branch)
       # TODO: смотреть откуда приходит project, вдруг его нет (bz)
