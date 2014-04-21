@@ -53,10 +53,10 @@ RUN apt-get install -y memcached
 # =========================================================================
 
 # install redis server
-RUN apt-get install -y software-properties-common python-software-properties
+# RUN apt-get install -y software-properties-common python-software-properties
 # 2.6.13
-RUN add-apt-repository -y ppa:chris-lea/redis-server
-RUN apt-get update
+# RUN add-apt-repository -y ppa:chris-lea/redis-server
+# RUN apt-get update
 RUN apt-get install -y redis-server
 
 # =========================================================================
