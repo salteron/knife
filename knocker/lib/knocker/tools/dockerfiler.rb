@@ -4,6 +4,8 @@ require_relative 'substitutor'
 
 module Knocker
   module Dockerfiler
+    extend self
+
     TEMPLATES_DIR           = File.join(::Knocker::APP_ROOT,
                                         'lib/knocker/templates')
 
@@ -14,8 +16,6 @@ module Knocker
     HOST_VHOST_TEMPLATE     = File.join(TEMPLATES_DIR, 'host_vhost_template')
 
     RUN_SCRIPT              = File.join(TEMPLATES_DIR, 'run.sh')
-
-    module_function
 
     # Generate dockerfile for an image from template
     # and put it to target dir
