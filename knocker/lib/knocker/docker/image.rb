@@ -55,13 +55,23 @@ module Knocker
     end
 
     # form and run container from self
+    # Ex:
+    #   Image.run
+    #   # => new container with name blizko_base_develop_crazy-einstein, and
+    #   # => http://www.crazy-einstein.develop.base.blizko.knf.railsc.ru
+    #
+    #   Image.run('red-carpet')
+    #   # => new container with name blizko_base_develop_red-carpet, and
+    #   # => http://www.red-carpet.knf.railsc.ru
     def run(container_alias = nil)
+      uniq_word      = container_alias ? container_alias : RandomNameGenerator.generate
+
       container_name = [
         repository,
-        container_alias || RandomNameGenerator.generate
+        uniq_word
       ].join('_')
 
-      sub_domain     = container_name.split('_').reverse.join('.')
+      sub_domain = container_alias ? container_alias : container_name.split('_').reverse.join('.')
 
       Docker.run(self, container_name, sub_domain)
     end

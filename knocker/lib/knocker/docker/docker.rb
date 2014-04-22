@@ -39,7 +39,7 @@ module Knocker
                                                     sub_domain)
       fail unless success
 
-      Container.new(container_id, sub_domain)
+      Container.new(container_id)
     end
 
     def self.commit(container, environment)

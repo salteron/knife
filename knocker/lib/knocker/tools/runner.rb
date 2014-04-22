@@ -17,7 +17,7 @@ module Knocker
       Dockerfiler.generate_container_vhost(container)
       Nginx.reload
 
-      Logger.log("http://www.#{container.domain}.#{Settings.www[:domain]} (container name: #{container.name})")
+      Logger.log("#{container.url} (container name: #{container.name})")
     end
 
     def check_image_existence(image)

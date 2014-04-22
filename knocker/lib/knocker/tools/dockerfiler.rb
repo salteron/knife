@@ -60,7 +60,7 @@ module Knocker
 
       substitution = {
         port: container.host_port_at(80),
-        sub_domain: container.domain,
+        sub_domain: container.sub_domain,
         domain: Settings.www[:domain],
         host_ip: Settings.docker[:host_ip]
       }

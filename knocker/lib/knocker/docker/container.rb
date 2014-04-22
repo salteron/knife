@@ -6,13 +6,12 @@ require_relative 'image'
 
 module Knocker
   class Container
-    attr_reader :id, :domain
+    attr_reader :id
 
     CONTAINER_NAME_REGEXP = /\A#{Settings.application[:default_project]}.+\z/
 
-    def initialize(id, domain = nil)
-      @id     = id
-      @domain = domain
+    def initialize(id)
+      @id = id
     end
 
     def inspection
@@ -29,6 +28,10 @@ module Knocker
 
     def ports
       inspection['HostConfig']['PortBindings']
+    end
+
+    def sub_domain
+      inspection['Config']['Env'].find { |e| e.match(/\ASUB_DOMAIN=/)}[11..-1]
     end
 
     def exists?
@@ -54,6 +57,10 @@ module Knocker
     # in seconds
     def age
       Time.now - Time.parse(inspection['State']['StartedAt'])
+    end
+
+    def url
+      "http://www.#{sub_domain}.#{Settings.www[:domain]}"
     end
 
     def commit(environment)
