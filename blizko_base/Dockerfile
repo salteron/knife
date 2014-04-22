@@ -15,6 +15,29 @@ MAINTAINER Michael Sogomonyan ms.sogomonyan@gmail.com
 RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
 RUN echo "deb http://archive.ubuntu.com/ubuntu/ precise-updates main restricted" >> /etc/apt/sources.list
 
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise main restricted" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise main restricted" >> /etc/apt/sources.list
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise-updates main restricted" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise-updates main restricted" >> /etc/apt/sources.list
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise universe" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise universe" >> /etc/apt/sources.list
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise-updates universe" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise-updates universe" >> /etc/apt/sources.list
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise multiverse" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise multiverse" >> /etc/apt/sources.list
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise-updates multiverse" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise-updates multiverse" >> /etc/apt/sources.list
+RUN echo "deb http://ru.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse" >> /etc/apt/sources.list
+RUN echo "deb-src http://ru.archive.ubuntu.com/ubuntu/ precise-backports main restricted universe multiverse" >> /etc/apt/sources.list
+RUN echo "deb http://security.ubuntu.com/ubuntu precise-security main restricted" >> /etc/apt/sources.list
+RUN echo "deb-src http://security.ubuntu.com/ubuntu precise-security main restricted" >> /etc/apt/sources.list
+RUN echo "deb http://security.ubuntu.com/ubuntu precise-security universe" >> /etc/apt/sources.list
+RUN echo "deb-src http://security.ubuntu.com/ubuntu precise-security universe" >> /etc/apt/sources.list
+RUN echo "deb http://security.ubuntu.com/ubuntu precise-security multiverse" >> /etc/apt/sources.list
+RUN echo "deb-src http://security.ubuntu.com/ubuntu precise-security multiverse" >> /etc/apt/sources.list
+RUN echo "deb http://extras.ubuntu.com/ubuntu precise main" >> /etc/apt/sources.list
+RUN echo "deb-src http://extras.ubuntu.com/ubuntu precise main" >> /etc/apt/sources.list
+
 RUN apt-get update
 
 # =========================================================================
@@ -90,6 +113,9 @@ RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" > /etc
 # Update the Ubuntu and PostgreSQL repository indexes
 RUN apt-get update
 
+# чтобы postgres мог сюда писать
+RUN chmod 666 /dev/null
+
 # Install ``python-software-properties``, ``software-properties-common`` and PostgreSQL 9.2
 #  There are some warnings (in red) that show up during the build. You can hide
 #  them by prefixing each apt-get statement with DEBIAN_FRONTEND=noninteractive
@@ -108,12 +134,12 @@ USER postgres
 # Меняем кодировку шаблона бд на UTF8
 # Пришлось прописать USER=postgres, т.к. почему-то переключение пред. командой не происходит
 RUN   USER=postgres /etc/init.d/postgresql start &&\
-      psql --command "UPDATE pg_database SET datistemplate = FALSE WHERE datname = 'template1';" &&\
-      psql --command "DROP DATABASE template1;" &&\
-      psql --command "CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'UNICODE';" &&\
-      psql --command "UPDATE pg_database SET datistemplate = TRUE WHERE datname = 'template1';" &&\
-      psql --command "\c template1" &&\
-      psql --command "VACUUM FREEZE;"
+      USER=postgres psql --command "UPDATE pg_database SET datistemplate = FALSE WHERE datname = 'template1';" &&\
+      USER=postgres psql --command "DROP DATABASE template1;" &&\
+      USER=postgres psql --command "CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'UNICODE';" &&\
+      USER=postgres psql --command "UPDATE pg_database SET datistemplate = TRUE WHERE datname = 'template1';" &&\
+      USER=postgres psql --command "\c template1" &&\
+      USER=postgres psql --command "VACUUM FREEZE;"
 
 # Adjust PostgreSQL configuration so that remote connections to the
 # database are possible.
