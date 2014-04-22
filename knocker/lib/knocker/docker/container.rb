@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 
 require 'json'
+require 'time'
 require_relative 'image'
 
 module Knocker
@@ -48,6 +49,11 @@ module Knocker
 
     def vhost_name
       "#{name}_conf"
+    end
+
+    # in seconds
+    def age
+      Time.now - Time.parse(inspection['State']['StartedAt'])
     end
 
     def commit(environment)

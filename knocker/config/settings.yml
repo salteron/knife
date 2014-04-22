@@ -10,4 +10,4 @@ www:
 
 nginx:
   vhosts_dir: '/etc/nginx/vhosts'
-  reload_cmd: 'sudo service nginx restart' # reload_cmd: '/sbin/rc-service nginx reload' # gentoo
+  reload_cmd: 'sudo service nginx reload' # reload_cmd: '/sbin/rc-service nginx reload' # gentoo

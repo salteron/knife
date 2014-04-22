@@ -8,7 +8,12 @@ module Knocker
       containers             = Container.all(false)
       not_running_containers = containers.reject(&:running?)
 
-      summon_mr_proper(not_running_containers)
+      # living a day or longer
+      day = 60 * 60 * 24
+      old_containers         = (containers - not_running_containers)
+                                 .select { |c| c.age > day }
+
+      summon_mr_proper(not_running_containers + old_containers)
     end
 
     def clean(container_name)

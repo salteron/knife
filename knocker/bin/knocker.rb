@@ -91,7 +91,7 @@ Slop.parse(help: true) do
       exit
     end
 
-    on :a, :all, 'Clean up all stopped containers' do
+    on :a, :all, 'Clean up all stopped and old containers' do
       Knocker::Cleaner.clean_all
       exit
     end
