@@ -85,6 +85,29 @@ Slop.parse(help: true) do
     end
   end
 
+  command 'clean' do
+    on :l, :list, 'List running containers' do
+      Knocker::Informer.list_containers
+      exit
+    end
+
+    on :a, :all, 'Clean up all stopped containers' do
+      Knocker::Cleaner.clean_all
+      exit
+    end
+
+    on :c=, :container=, 'Name of a container to be cleaned up'
+
+    run do |opts|
+      unless opts[:container]
+        puts(opts)
+        exit
+      end
+
+      Knocker::Cleaner.clean(opts[:container])
+    end
+  end
+
   run do |opts|
     puts opts
   end

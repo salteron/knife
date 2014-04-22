@@ -13,4 +13,5 @@ module Knocker
   require_relative 'knocker/tools/builder'
   require_relative 'knocker/tools/runner'
   require_relative 'knocker/tools/committer'
+  require_relative 'knocker/tools/cleaner'
 end

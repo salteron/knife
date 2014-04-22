@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+require 'json'
 
 module Knocker
   module DockerAdapter
@@ -35,6 +36,16 @@ module Knocker
     def self.exists?(image_or_container_name)
       inspect(image_or_container_name)
       $?.success?
+    end
+
+    def self.containers_ids(name_regexp)
+      JSON.parse(`docker ps -a -q | xargs -r docker inspect`)
+        .select { |c| c['Name'][1..-1].match(name_regexp) }
+        .map { |c| c['ID'] }
+    end
+
+    def self.remove_containers(ids)
+      `docker rm -f #{ids.join(' ')}` unless ids.empty?
     end
   end
 end

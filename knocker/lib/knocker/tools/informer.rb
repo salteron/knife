@@ -20,7 +20,7 @@ module Knocker
 
     def list_containers(project = Settings.application[:default_project])
       head = 'Running containers'
-      list = Container.names(project).join("\n")
+      list = Container.all.map(&:name).join("\n")
 
       log_list(head, list)
     end

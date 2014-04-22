@@ -7,6 +7,8 @@ module Knocker
   class Container
     attr_reader :id, :domain
 
+    CONTAINER_NAME_REGEXP = /\A#{Settings.application[:default_project]}.+\z/
+
     def initialize(id, domain = nil)
       @id     = id
       @domain = domain
@@ -17,7 +19,7 @@ module Knocker
     end
 
     def name
-      inspection['Name']
+      inspection['Name'][1..-1]
     end
 
     def host_port_at(tcp_port)
@@ -40,6 +42,14 @@ module Knocker
       inspection['Config']['Image']
     end
 
+    def running?
+      inspection['State']['Running']
+    end
+
+    def vhost_name
+      "#{name}_conf"
+    end
+
     def commit(environment)
       Docker.commit(self, environment)
     end
@@ -54,13 +64,10 @@ module Knocker
       Container.new(container_id)
     end
 
-    def self.all(project = nil)
-      JSON.parse(`docker ps -a -q | xargs docker inspect`)
-        .select { |c| c['Name'].match(/^\/#{project}/) }
-    end
+    def self.all(running_only = true)
+      containers = Docker.containers(CONTAINER_NAME_REGEXP)
 
-    def self.names(project = nil)
-      all(project).map { |c| c['Name'][1..-1] } # remove leading '/'
+      running_only ? containers.select(&:running?) : containers
     end
   end
 end

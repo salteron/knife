@@ -79,5 +79,13 @@ module Knocker
 
       build_dir
     end
+
+    def self.containers(name_regexp)
+      DockerAdapter.containers_ids(name_regexp).map { |id| Container.new(id) }
+    end
+
+    def self.remove_containers(containers)
+      DockerAdapter.remove_containers(containers.map(&:id))
+    end
   end
 end
