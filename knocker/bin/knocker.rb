@@ -17,9 +17,6 @@ Slop.parse(help: true) do
       exit
     end
 
-    # TODO: для каналов (knocker build ... | xargs knocker run)
-    on :q, :quite, 'Quite mode'
-
     on :r, :run, 'Run a container after an image is built'
 
     on :i=, :image=,  'Image name'
