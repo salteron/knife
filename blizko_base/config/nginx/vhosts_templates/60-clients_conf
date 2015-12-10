@@ -1,0 +1,66 @@
+## Сайты клиентов
+server {
+	listen		80 default;
+	server_name	_;
+
+	access_log	/var/log/nginx/60-site.test-blizko.ru-access_log main;
+	error_log	/var/log/nginx/60-site.test-blizko.ru-error_log info;
+
+	root /home/blizko/current/public;
+
+	# Страница ремонтных работ
+	include /etc/nginx/503.conf;
+
+	# перебрасываем домены пользователей с domain.ru на www.domain.ru
+	if ( $host ~ ^[^.]+\.[^.]+$ ) {
+		rewrite ^(.*)$ http://www.$host$1 permanent;
+	}	
+
+	# Обработка сообщений переадресуется если не POST (совместимость со старым сайтом)
+	location ~ ^/dashboard/messages$ {
+		if ($request_method != POST ) {
+			rewrite  ^/dashboard/messages$  http://$host/dashboard/dialogs permanent;
+		}
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass  http://unicorn;
+	}
+
+	# Обработка сообщений переадресуется (совместимость со старым сайтом)
+	location ~ ^/firms/[0-9]+/write$ {
+		rewrite  ^/firms/([0-9]+)/write$ http://$host/dashboard/messages/new?company_id=$1 permanent;
+	}
+
+	# Все запросы к /firms/.*/stats/add_hit.(js|gif) отправлем на backend
+	location ~ ^\/stats\/add_hit\.(js|gif)$ {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# Все запросы к /vcard.php отправлем на backend
+	location ~ ^\/vcard\.php$ {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# Кэш страницы rails
+	location ~ .html {
+		root /home/blizko/current/public;
+	}
+
+	# Валидация yandex
+	location ~ /yandex_[0-9a-f]+\.txt$ {
+		root /home/blizko/current/public/yandex/validation;	
+	}
+
+	# Вся статика
+	location ~* ^.+\.(jpg|jpeg|gif|png|ico|css|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|js|mov|csv)$ {
+		root /home/blizko/current/public;
+		expires      1d;
+	}
+
+	# Отправлем все на backend
+	location / {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass  http://unicorn;
+	}
+}

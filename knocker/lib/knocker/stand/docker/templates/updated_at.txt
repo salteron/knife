@@ -1,0 +1,7 @@
+project:           %project%
+environment:       %env%
+branch:            %branch%
+tag (commit-hash): %tag%
+
+image:     %image_name%
+built at : %time%

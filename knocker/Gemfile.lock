@@ -1,0 +1,18 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    colorize (0.6.0)
+    command (1.0.0)
+    mixlib-cli (1.4.0)
+    net-ssh (2.9.0)
+    slop (3.5.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  colorize
+  command
+  mixlib-cli
+  net-ssh
+  slop

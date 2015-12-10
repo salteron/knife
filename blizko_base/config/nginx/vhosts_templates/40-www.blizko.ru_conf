@@ -1,0 +1,223 @@
+## Основной сайт
+server {
+	listen		80;
+	server_name	www.knife.railsc.ru;
+	
+	access_log	/var/log/nginx/40-www.knife.railsc.ru-access_log main;
+	error_log	/var/log/nginx/40-www.knife.railsc.ru-error_log info;
+
+	root /home/blizko/current/public;
+
+	#http://jira.dev.apress.ru/browse/BPC-1779
+	rewrite ^(/users/.*) http://all.knife.railsc.ru$1 permanent;
+	rewrite ^(/unsubscribe.*) http://all.knife.railsc.ru$1 permanent;
+
+	# Страница ремонтных работ
+	include /etc/nginx/503.conf;
+	
+	# блокирование по http_referer
+	include /etc/nginx/block_referer.conf;
+
+	# Обработка сообщений переадресуется если не POST (совместимость со старым сайтом)
+	location = /dashboard/messages {
+		if ($request_method != POST ) {
+			rewrite  ^/dashboard/messages$  http://$host/dashboard/dialogs permanent;
+		}
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass  http://unicorn;
+	}
+
+	# Кеширование главных страниц по регионам и по связке (регион-ip)
+	location = / {
+		# берем регион из домена
+		if ($host ~* "^([^.]+)\.knife\.railsc\.ru$" ) {
+			set  $region  $1;
+		}
+		# для домеа www.knife.railsc.ru берем регион 'ru'
+		if ($host ~* "^www\.knife\.railsc\.ru$" ) {
+			set  $ip_region  $country;
+			set  $region  'ru';
+		}
+
+		# Если backend сгенерироваля для нас кэш-страницу, то мы ее отдаем
+		if (-f $document_root/cache/root/index_${region}_$ip_region.html) {
+			root /home/blizko/current/public;	
+			rewrite / /cache/root/index_${region}_$ip_region.html break;
+			add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+			add_header Pragma "no-cache";
+			charset utf-8;
+		}
+
+		include /etc/nginx/proxy_headers.conf;
+
+		# Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+		if (!-f $document_root/cache/root/index_${region}_$ip_region.html) {
+			proxy_pass  http://unicorn;
+		}
+	}
+
+	# Редирект для удержания поискового индекса старого knife.railsc.ru - тематический каталог
+	# Цель перенаправлять запрос вида www.knife.railsc.ru/tematic[two]/* на ekb.knife.railsc.ru/naiti[kupit]
+	location ~ ^/tematic.*$ {
+		rewrite  ^/tematictwo(.*)$ http://ekb.knife.railsc.ru/kupit$1 permanent;
+		rewrite  ^/tematic(.*)$ http://ekb.knife.railsc.ru/naiti$1 permanent;
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+	
+	# Редирект для удержания поискового индекса старого knife.railsc.ru - отраслевой каталог
+	# Цель перенаправлять запрос вида www.knife.railsc.ru/firms/<рубрика> на ekb.knife.railsc.ru/company
+	location ~ ^/firms/(?!(search|newfirms))[a-z/_]+$ {
+		rewrite ^/firms/([a-z/_]+)$ http://ekb.knife.railsc.ru/company/$1 permanent;
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# редирект для удержания поискового индекса старого knife.railsc.ru - карта города
+	# цель перенаправлять запрос вида www.knife.railsc.ru/atlas на ekb.knife.railsc.ru/karta
+	location ~ ^/atlas.*$ {
+		rewrite  ^/atlas(.*)$ http://ekb.knife.railsc.ru/karta$1 permanent;
+	}
+
+	
+	        # Кеширование генерируемых css шаблонов компаний - http://jira.dev.apress.ru/browse/PC4-6565
+        location ~ ^/stylesheets/(\d+/\d+)/(\d+)_(d|n)\.css$ {
+                set $id_partition $1;
+                set $company_id $2;
+                set $is_default $3;
+                root /home/blizko/current/public;
+
+        # Если backend сгенерироваля для нас кэш-страницу, то мы ее отдаем
+                if (-f $document_root/cache/company_template_css/${id_partition}/${company_id}_${is_default}.css) {
+                        rewrite / /cache/company_template_css/${id_partition}/${company_id}_${is_default}.css break;
+                        add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+                        add_header Pragma "no-cache";
+                        charset utf-8;
+                }
+
+                include /etc/nginx/proxy_headers.conf;
+
+        # Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+                if (!-f $document_root/cache/company_template_css/${id_partition}/${company_id}_${is_default}.css) {
+                        proxy_pass  http://unicorn;
+                }
+        }
+
+        # Кеширование генерируемых css шаблонов компаний - http://jira.dev.apress.ru/browse/SERVER-871
+        location ~ ^/stylesheets/([0-9]+)-template\.css$ {
+                set $company_id $1;
+                root /home/blizko/current/public;
+
+                # Если backend сгенерировал для нас кэш-страницу, то мы ее отдаем
+                if (-f $document_root/cache/company_template_css/company_${company_id}.css) {
+                        rewrite / /cache/company_template_css/company_${company_id}.css break;
+                        charset utf-8;
+                }
+
+                include /etc/nginx/proxy_headers.conf;
+
+                # Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+                if (!-f $document_root/cache/company_template_css/company_${company_id}.css) {
+                        proxy_pass  http://unicorn;
+                }
+        }
+
+
+        # Кеширование генерируемых css схем компаний
+        location ~ ^\/stylesheets/(\d+)-scheme.css$ {
+                set $scheme_id $1;
+
+                # Если backend сгенерировал для нас кэш-страницу, то мы ее отдаем
+                if (-f $document_root/cache/company_template_css/scheme_${scheme_id}.css) {
+                        root /home/blizko/current/public;
+                        rewrite / /cache/company_template_css/scheme_${scheme_id}.css break;
+                        add_header Cache-Control "no-store, no-cache, must-revalidate, post-check=0, pre-check=0";
+                        add_header Pragma "no-cache";
+                        charset utf-8;
+                }
+
+                include /etc/nginx/proxy_headers.conf;
+
+                # Если backend НЕ сгенерироваля для нас кэш-страницу, то отправлем всех на backend
+                if (!-f $document_root/cache/company_template_css/scheme_${scheme_id}.css) {
+                        proxy_pass  http://unicorn;
+                }
+        }
+	
+
+	# редирект для удержания поискового индекса старого knife.railsc.ru - карта города
+	# цель перенаправлять запрос вида www.knife.railsc.ru/atlas на ekb.knife.railsc.ru/karta
+	location /r/news {
+		rewrite  ^/r/news/p([0-9]+)/$ http://ekb.knife.railsc.ru/news?page=$1 permanent;
+		rewrite  ^/r/news(.*)$ http://ekb.knife.railsc.ru/news$1 permanent;
+	}
+
+	# редирект для удержания поискового индекса старого knife.railsc.ru - акции компаний
+	# цель перенаправлять запрос вида www.knife.railsc.ru/r/discount на ekb.knife.railsc.ru/skidki_akcii
+	location /r/discount {
+		rewrite  ^/r/discount/p([0-9]+)/$ http://ekb.knife.railsc.ru/skidki_akcii?page=$1 permanent;
+		rewrite  ^/r/discount(.*)$ http://ekb.knife.railsc.ru/skidki_akcii$1 permanent;
+	}
+
+	# редирект для удержания поискового индекса старого knife.railsc.ru - постраничная навигация товаров на СК
+	location /firms {
+		# постраничная навигация новостей на СК
+		# цель перенаправлять запрос вида www.knife.railsc.ru/firms/<ID>/news/p<страница> на www.knife.railsc.ru/firms/<ID>/news?page=<страница>
+		rewrite  ^/firms/([0-9]+)/news/p([0-9]+)/$ http://www.knife.railsc.ru/firms/$1/news?page=$2 permanent;
+
+		# постраничная навигация акций на СК
+		# цель перенаправлять запрос вида www.knife.railsc.ru/firms/<ID>/discount/p<страница> на www.knife.railsc.ru/firms/<ID>/discount?page=<страница>
+		rewrite  ^/firms/([0-9]+)/discount/p([0-9]+)/$ http://www.knife.railsc.ru/firms/$1/discount?page=$2 permanent;
+
+		# постраничная навигация товаров на СК
+		# цель перенаправлять запрос вида www.knife.railsc.ru/firms/<ID>/goods/p<страница> на www.knife.railsc.ru/firms/<ID>/goods?page=<страница>
+		rewrite  ^/firms/([0-9]+)/goods/p([0-9]+)/$ http://www.knife.railsc.ru/firms/$1/goods?page=$2 permanent;
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# Все запросы к /firms/.*/stats/add_hit.(js|gif) отправлем на backend
+	location ~ ^\/(firms\/.*\/)?stats\/add_hit\.(js|gif)$ {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# Все запросы к /vcard.php отправлем на backend
+	location ~ ^\/vcard\.php$ {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass http://unicorn;
+	}
+
+	# запросы к robots.txt
+	location ~ robots.txt {
+		root /home/blizko/static;
+	}
+
+	# Подключение домена ekb.knife.railsc.ru к счетчику Uralweb
+	location ~ \/uralweb.xml {
+		root /home/blizko/current/public/system;
+		charset windows-1251;
+	}
+		
+	# Валидация yandex
+	location ~ /yandex_[0-9a-f]+\.(txt|html)$ {
+		root /home/blizko/current/public/yandex/validation;	
+	}
+
+	# Кэш страницы rails
+	location ~ .html {
+		root /home/blizko/current/public;
+	}
+
+	# Вся статика
+	location ~* ^.+\.(jpg|jpeg|gif|png|ico|css|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|js|mov|csv)$ {
+		root /home/blizko/current/public;
+		expires      1d;
+	}
+
+	# Отправлем все на backend
+	location / {
+		include /etc/nginx/proxy_headers.conf;
+		proxy_pass  http://unicorn;
+	}
+}
